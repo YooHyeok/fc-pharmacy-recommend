@@ -1,0 +1,31 @@
+spring:
+  profiles:
+    active: prod # default
+    group: # 여러 profile을 한꺼번에 실행시킨다. (local 실행시 common을 함께 실행 혹은 prod실행시 common이 함께 실행되도록 각각을 group으로 지정)
+      local:
+        - common
+      prod:
+        - common
+
+
+--- # 파일을 나누지 않고 논리적으로 나눠주는 구분자 (추후 프로젝트가 커지고 설정값들이 많아지면 파일로 나눠 하는게 더 효율적일 수 있다.)
+# 공통으로 사용할 common profile
+spring:
+  config:
+    activate:
+      on-profile: common
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: local
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+
