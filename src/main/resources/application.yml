@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: prod # default
+    active: local # default
     group: # 여러 profile을 한꺼번에 실행시킨다. (local 실행시 common을 함께 실행 혹은 prod실행시 common이 함께 실행되도록 각각을 group으로 지정)
       local:
         - common
@@ -21,6 +21,18 @@ spring:
   config:
     activate:
       on-profile: local
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+    url: jdbc:mariadb://localhost:3306/pharmacy-recommend
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  redis:
+    host: localhost
+    port: 6379
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
 
 ---
 spring:
