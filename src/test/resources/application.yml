@@ -1,0 +1,14 @@
+# TestContainer를 위한 Property 설정 파일
+spring:
+  datasource:
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    url: jdbc:tc:mariadb:10:/// # jdbc: 이후 tc:를 삽입하면 hostname, port, database 모두 무시되고, 테스트 컨테이너 드라이버가 알아서 설정해준다.
+    #(포트의 경우 랜덤포트로 docker 컨테이너를 띄울때 충돌되지 않게끔 자동으로 랜덤 포트값이 정됨)
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+kakao:
+  rest:
+    api:
+      key: ${KAKAO_REST_API_KEY}
