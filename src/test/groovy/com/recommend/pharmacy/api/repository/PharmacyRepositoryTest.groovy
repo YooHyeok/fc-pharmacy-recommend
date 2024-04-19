@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import spock.lang.Specification
 
+import java.time.LocalDateTime
+
 @SpringBootTest // 스프링 통합테스트 환경 구축 (컨테이너로부터 빈을 주입받기위해 선언)
 class PharmacyRepositoryTest extends AbstractIntergaionContainerBaseTest {
 
@@ -70,5 +72,25 @@ class PharmacyRepositoryTest extends AbstractIntergaionContainerBaseTest {
 
         then:
         result.size() == 1;
+    }
+
+    /**
+     * Auditing 테스트!
+     */
+    def "BaseTimeEntity 등록"() {
+        given:
+        LocalDateTime now = LocalDateTime.now()
+        String address = "서울 특별시 성북구 종암동"
+        String name = "은혜 약국"
+        def build = Pharmacy.builder()
+            .pharmacyAddress(address)
+            .pharmacyName(name)
+            .build()
+        when:
+        pharmacyRepository.save build
+        def result = pharmacyRepository.findAll()
+        then:
+        result.get(0).getCreatedDate()isAfter(now) //매개변수로 넘겨받은 값 보다 더 최근인지 확인하는 메소드
+        result.get(0).getModifieDate()isAfter(now)
     }
 }
