@@ -185,4 +185,92 @@ def "whereTestExample"() {
 # *TestContainers*
 
 ### 사용 이유
-- JPA이용 CRUD 테스트코드를 작성할때
+JPA이용한 CRUD 테스트코드를 작성할때 DB환경 예
+
+`일반적`
+1. **운영환경과 유사한 스펙의 DB(개발환경 DB) 사용**  
+   일반적으로 테스트코드라는것이 항상 실행할 때 마다 동일한 결과값이 나와야한다.  
+   만약 다른 팀원과 동일한 DB를 사용하게 된다면 그 결과를 예측할 수 없게 된다.  
+
+`독립적`
+2. **인메모리 DB(ex H2) 사용**  
+   운영DB 환경에 특화된 (격리레벨, 전파레벨) 혹은  
+   특정 쿼리가 테스트 환경에서는 정상적으로 작동하지만 운영환경에서는 안될수 있음.  
+   즉, 독립적인 환경이지만, 운영과 완벽하게 일치하는 환경이 될 수는 없음.
+3. **Docker 이용**  
+   Docker를 통해 독립적인 환경을 구축하면서도, image를 통해 운영환경의 DB와 일치하는 DB 사용이 가능함.
+   그러나 이 역시 관리포인트가 늘어난다는 단점이 있음.  
+   (DockerCompose 스크립트 작성, 테스트 실행/종료 후 컨테이너 정리 등)
+4. **TestContainers 이용**  
+운영환경과 유사한 DB 스펙으로 독립적인 환경에서 테스트 코드를 작성하여 테스트가 가능함.  
+Java언어 만으로 Docker Container를 활용한 테스트환경을 구성할 수 있는 장점이 있음.  
+도커를 이용하여 테스트할 때 컨테이너를 직접 관리해야 하는 번거로움을 해결해 주며,  
+운영환경과 유사한 스펙으로 테스트가 가능하다.
+즉, 테스트 코드가 실행될 때 자동으로 도커 컨테이너를 실행하여 테스트하고,  
+테스트가 끝나면 자동으로 컨테이너를 종료 및 정리 해준다.
+(다양한 모듈이 존재한다.)
+
+### Dependency
+```json
+    // testcontainers
+    testImplementation 'org.testcontainers:spock:1.17.1'
+    testImplementation 'org.testcontainers:mariadb:1.17.1'
+```
+(테스트 컨테이너는 spock테스트환경과 JUnit 모두 지원해준다.)
+
+### 테스트 컨테이너 DB Property 설정
+```yaml
+spring:
+  datasource:
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    url: jdbc:tc:mariadb:10://
+```
+jdbc: 이후 tc:를 삽입하면 hostname, port, database 모두 무시되고, 테스트 컨테이너 드라이버가 알아서 설정해준다.  
+(포트의 경우 랜덤포트로 docker 컨테이너를 띄울때 충돌되지 않게끔 자동으로 랜덤 포트값이 정됨)
+
+### 미지원 모듈(Redis) 도커 이미지 연동 및 싱글톤 컨테이너
+미지원 모듈에 대한 `GenericContainer`를 활용한다.
+이 경우 도커 컨테이너를 직접 띄우고 테스트 완료후 컨테이너를 정리해줘야 하므로, 아무래도 테스트 실행 속도가 느릴 수 밖에 없다.  
+또한 테스트 메소드마다 각 컨테이너를 띄우고 끄고 하는 작업을 반복한다면 더욱 느려질 수 밖에 없다.  
+따라서 테스트 코드가 실행될 때 컨테이너를 한번만 띄워놓고 테스트가 끝났을 때 컨테이너를 정리해줄 수 있도록 싱글 컨테이너로 구성한다.  
+이 경우 추상 클래스로 Specification을 상속받은 뒤 사용할 모듈을 GenericContainer를 통해 static 초기화자로 초기화해준다.  
+이렇게 구현한 해당 클래스를 상속받는다면 싱글톤으로 해당 이미지를 테스트 컨테이너에서 활용할 수 있게 된다.  
+```java
+@SpringBootTest // 스프링 컨테이너를 함께 띄워 여러 모듈간의 연동까지 검증하는 통합 테스트 환경
+abstract class AbstractIntergaionContainerBaseTest extends Specification{
+
+    static final GenericContainer MY_REDIS_CONTAINER
+
+    /**
+     * static 초기화자
+     * Redis의 경우 TestContainer의 모듈 하위에 제공을 하고있지 않기 때문에 Docker hub의 Image를 이용하여 테스트컨테이너와 연동해야 한다.
+     * 이때 GenericContainer를 활용하여 해당 이미지를 초기화 해준다.
+     * 6379: Docker로부터 expose한 port
+     * host port는 TestContainer가 충돌되지 않는 임의의 포트를 생성해서 매핑해준다.
+     * SpringBoot입장에서는 Redis와 통신하기위해 Port를 알아야 하므로 setProperty로 시스템에 HOST 정보를 전달해준다.
+     */
+    static {
+        /* Redis 컨테이너 초기화 */
+        MY_REDIS_CONTAINER = new GenericContainer<>("redis:6") // 사용할 image와 버전 설정
+                .withExposedPorts(6379)  // Docker로 부터 expose된 Port
+
+        /* Redis 컨테이너 시작 */
+        MY_REDIS_CONTAINER.start()
+
+        /* Spring Boot에 Host & Port 정보 전달 */
+        System.setProperty("spring.redis.host", MY_REDIS_CONTAINER.getHost()) // Host정보 전달
+        System.setProperty("spring.redis.port", MY_REDIS_CONTAINER.getMappedPort(6379).toString()) // SpringBoot에게 6379와 랜덤하게 매핑된 port 정보 전달
+    }
+}
+```
+
+### 테스트 컨테이너의 ryuk
+테스트가 실행될 때 docker ps 명령으로 확인하게 되면
+```
+5f2132c13e0a   mariadb:10                  "docker-entrypoint.s…"   11 seconds ago   Up 10 seconds   0.0.0.0:52148->3306/tcp   ecstatic_zhukovsky
+8ac381ff71c3   redis:6                     "docker-entrypoint.s…"   15 seconds ago   Up 14 seconds   0.0.0.0:52123->6379/tcp   hopeful_austin
+a217f2cce2f2   testcontainers/ryuk:0.3.3   "/app"                   16 seconds ago   Up 15 seconds   0.0.0.0:52118->8080/tcp   testcontainers-ryuk-0f2ce279-55d2-4de5-a2dd-c958ea1c8e28
+```
+위와같이 컨테이너가 확인되고 이때 알수없는 ryuk라는 컨테이너도 함께 올라온다.  
+테스트가 종료되면 테스트 컨테이너에 의해 실행된 mariadb, redis 컨테이너가 목록에서 정리된다.  
+이때, ryuk 컨테이너가 정리해주는 역할을 해준다.  
