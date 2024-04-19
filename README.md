@@ -274,3 +274,84 @@ a217f2cce2f2   testcontainers/ryuk:0.3.3   "/app"                   16 seconds a
 위와같이 컨테이너가 확인되고 이때 알수없는 ryuk라는 컨테이너도 함께 올라온다.  
 테스트가 종료되면 테스트 컨테이너에 의해 실행된 mariadb, redis 컨테이너가 목록에서 정리된다.  
 이때, ryuk 컨테이너가 정리해주는 역할을 해준다.  
+
+
+# Transaction(AOP) 주의사항
+일반적으로 Spring에서는 @Transaction 어노테이션을 활용하여 트랜잭션을 처리한다.  
+@Transaction 어노테이션은 Spring AOP 기반이며, Spring AOP는 Proxy기반으로 동작한다.  
+### AOP(관점지향 프로그래밍)이란  
+트랜잭션처리, 로깅, 에러, 권한처리 등 부수적인작업을 Proxy 객체에게 위임하고 개발자는 비즈니스로직에만 집중할 수 있게 하고,   
+Proxy의 핵심 기능은 지정된 메소드가 호출(Invocation) 될 때 해당 메소드를 가로채어 부가 기능들을 프록시 객체에게 위임한다.
+
+### AOP - Self-Invocation
+Self Invocation이란 내부메소드에서 동일한 클래스에 존재하는 다른 내부 메소드를 호출하는것을 말한다.
+```java
+    /**
+     * Self Invocation Test
+     * 외부로 부터 최초 호출된다.
+     */
+    public void bar(List<Pharmacy> pharmacyList) {
+        log.info("bar CurrentTransactionName: " + TransactionSynchronizationManager.getCurrentTransactionName());
+        foo(pharmacyList);
+    }
+
+    /**
+     * Self Invocation Test
+     * bar에 의해 호출된다.
+     */
+    @Transactional
+    public void foo(List<Pharmacy> pharmacyList) {
+        log.info("foo CurrentTransactionName: " + TransactionSynchronizationManager.getCurrentTransactionName());
+        pharmacyList.forEach(pharmacy -> {
+            pharmacyRepository.save(pharmacy);
+            throw new RuntimeException("Self Invocation Error"); // Rollback을 위한 예외 발생
+        });
+    }
+```
+이러한 Self Invociation에서 정상적으로 AOP관련 부가기능이 동작하지 않게 된다.
+일반적으로 외부에서 메소드가 호출되는 시점에 @Transaction이라는 어노테이션에 의해 AOP 프록시 객체를 생성하고,  
+프록시 객체는 부가 기능(트랜잭션)을 주입해 준다.
+만약 두번째 내부 메소드에 @Transcation 어노테이션이 있을 경우 첫번째 내부메소드를 호출했을 때 프록시 객체 생성이  
+되지 않으므로 내부 호출에 대해서는 Proxy가 동작하지 않아 Transaction이 적용되지 않는다.
+
+### Self Invocation 해결책
+ 1) @Transaction 애노테이션을 내부가 아닌 외부에서 최초 호출하는 메소드에 선언
+    ```java
+        /**
+         * Self Invocation Test
+         * 외부로 부터 최초 호출된다.
+         */
+        @Transactional
+        public void bar(List<Pharmacy> pharmacyList) {
+            log.info("bar CurrentTransactionName: " + TransactionSynchronizationManager.getCurrentTransactionName());
+            foo(pharmacyList);
+        }
+    
+        /**
+         * Self Invocation Test
+         * bar에 의해 호출된다.
+         */
+        public void foo(List<Pharmacy> pharmacyList) {
+            log.info("foo CurrentTransactionName: " + TransactionSynchronizationManager.getCurrentTransactionName());
+            pharmacyList.forEach(pharmacy -> {
+                pharmacyRepository.save(pharmacy);
+                throw new RuntimeException("Self Invocation Error"); // Rollback을 위한 예외 발생
+            });
+        }
+    ```
+ 2) 객체의 책임을 최대한 분리하여 외부 호출하도록 리팩토링한다.
+    ```java
+    
+        @Autowired
+        private PharmacyService pharmacyService;
+        /**
+         * Self Invocation Test
+         * 외부로 부터 최초 호출된다.
+         */
+        public void bar(List<Pharmacy> pharmacyList) {
+            log.info("bar CurrentTransactionName: " + TransactionSynchronizationManager.getCurrentTransactionName());
+            pharmacyService.foo(pharmacyList);
+        }
+    ```
+서비스를 새로 만들어 의존성을 분리한다. (해당 foo 메소드에는 @Transaction 어노테이션이 있음)
+일반적으로 
