@@ -18,4 +18,11 @@ public class Pharmacy {
     private String pharmacyAddress;
     private double latitude;
     private double longitude;
+
+    /**
+     * 주소 변경 메소드 (Dirty Checking)
+     */
+    public void changePharmacyAddress(String address) {
+        this.pharmacyAddress = address;
+    }
 }
