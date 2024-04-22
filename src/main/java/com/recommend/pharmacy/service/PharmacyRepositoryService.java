@@ -7,7 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.util.CollectionUtils;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -56,5 +58,13 @@ public class PharmacyRepositoryService {
             return;
         }
         pharmacy.changePharmacyAddress(address);
+    }
+
+    /**
+     * Pharmacy - 약국 API CSV파일 DTO 변환 후 MariaDB 저장시 사용
+     */
+    public List<Pharmacy> saveAll(List<Pharmacy> pharmacyDtoList) {
+        if (CollectionUtils.isEmpty(pharmacyDtoList)) return Collections.emptyList();
+        return pharmacyRepository.saveAll(pharmacyDtoList);
     }
 }
