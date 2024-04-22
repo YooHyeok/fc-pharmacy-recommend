@@ -354,4 +354,49 @@ Self Invocation이란 내부메소드에서 동일한 클래스에 존재하는 
         }
     ```
 서비스를 새로 만들어 의존성을 분리한다. (해당 foo 메소드에는 @Transaction 어노테이션이 있음)
-일반적으로 
+
+# *Docker 환경 DB 초기 데이터 셋업*
+Docker 베이스 MariaDB 사용하고 있으므로, Docker의 `/docker-entrypoint-initdb.d` 경로에 .sql 혹은 .sh 파일을 넣어두면 컨테이너 실행시 최초 한번 실행이 된다.  
+앞서 이전에 도커컴포즈 파일의 volumes 옵션에 `./database/config:/etc/mysql/conf.d`와 같이 config를 매핑시켜준적이 있다.  
+따라서 도커컴포즈 파일의 volumes 옵션에 `./database/init:/docker-entrypoint-initdb.d`를 추가해준다.
+- ### docker-compose-local.yml
+  ```yaml
+  volumes:
+    - ./database/config:/etc/mysql/conf.d
+    - ./database/init:/docker-entrypoint-initdb.d # 추가
+  ```
+
+이어서 좌측 `./database/init` 즉, 일치하는 프로젝트 디렉토리 경로에 .sql 파일을 추가해준다.  
+
+마지막으로 jpa.hibernate.ddl.auto: validate로 설정해준다.  
+
+- ### application.yml
+    ```yaml
+    spring:
+    jpa:
+    hibernate:
+    #      ddl-auto: create
+      ddl-auto: validate
+    show-sql: true
+    ```
+
+기존에는 create로 설정하였으나, 어플리케이션이 실행될 때 마다 매번 데이터베이스를 모두 다 Drop시키고 Create 하기 때문에  
+Entity와 데이터베이스 간의 매핑이 Validate 즉, 일치 하는지 확인만 해보는 옵션으로 변경한다.
+ - ### 실행 및 확인 명령
+    1. **기존 생성해서 사용했던 pharmacy 도커 컨테이너 삭제**  
+       최초 실행시 한번 실행되기 때문에 삭제해서 다시 만들어야 함.
+    2. **컨테이너 접속**  
+       `docker exec -it [db컨테이너id] bash`
+
+    3. **DataBase 접속**  
+       `mysql -uroot -p1234`
+
+    4. **DataBase 스키마 접속**  
+       `show databases;`
+       `use [데이터베이스스키마명];`
+
+    5. **테이블 목록 확인**  
+       `show tables;`
+
+    6. **테이블 조회**  
+       `select * from 테이블명;`
