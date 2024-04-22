@@ -1,7 +1,7 @@
-package com.recommend.pharmacy.service;
+package com.recommend.pharmacy.domain.pharmacy.service;
 
-import com.recommend.pharmacy.api.entity.Pharmacy;
-import com.recommend.pharmacy.api.repository.PharmacyRepository;
+import com.recommend.pharmacy.domain.pharmacy.entity.Pharmacy;
+import com.recommend.pharmacy.domain.pharmacy.repository.PharmacyRepository;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

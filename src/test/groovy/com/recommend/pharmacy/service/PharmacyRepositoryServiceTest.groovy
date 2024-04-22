@@ -1,10 +1,10 @@
 package com.recommend.pharmacy.service
 
 import com.recommend.pharmacy.AbstractIntergaionContainerBaseTest
-import com.recommend.pharmacy.api.entity.Pharmacy
-import com.recommend.pharmacy.api.repository.PharmacyRepository
+import com.recommend.pharmacy.domain.pharmacy.entity.Pharmacy
+import com.recommend.pharmacy.domain.pharmacy.repository.PharmacyRepository
+import com.recommend.pharmacy.domain.pharmacy.service.PharmacyRepositoryService
 import org.springframework.beans.factory.annotation.Autowired
-import spock.lang.Specification
 
 class PharmacyRepositoryServiceTest extends AbstractIntergaionContainerBaseTest {
 

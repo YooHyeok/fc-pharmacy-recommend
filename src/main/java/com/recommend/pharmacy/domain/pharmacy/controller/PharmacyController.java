@@ -1,7 +1,7 @@
-package com.recommend.pharmacy.controller;
+package com.recommend.pharmacy.domain.pharmacy.controller;
 
-import com.recommend.pharmacy.api.entity.Pharmacy;
-import com.recommend.pharmacy.service.PharmacyRepositoryService;
+import com.recommend.pharmacy.domain.pharmacy.entity.Pharmacy;
+import com.recommend.pharmacy.domain.pharmacy.service.PharmacyRepositoryService;
 import com.recommend.pharmacy.util.CsvUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

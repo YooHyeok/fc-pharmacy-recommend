@@ -1,10 +1,10 @@
 package com.recommend.pharmacy.api.repository
 
 import com.recommend.pharmacy.AbstractIntergaionContainerBaseTest
-import com.recommend.pharmacy.api.entity.Pharmacy
+import com.recommend.pharmacy.domain.pharmacy.entity.Pharmacy
+import com.recommend.pharmacy.domain.pharmacy.repository.PharmacyRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import spock.lang.Specification
 
 import java.time.LocalDateTime
 

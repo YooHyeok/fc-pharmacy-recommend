@@ -1,7 +1,7 @@
 package com.recommend.pharmacy.util;
 
 import com.opencsv.CSVReader;
-import com.recommend.pharmacy.dto.PharmacyDto;
+import com.recommend.pharmacy.domain.pharmacy.dto.PharmacyDto;
 
 import java.io.FileReader;
 import java.io.IOException;

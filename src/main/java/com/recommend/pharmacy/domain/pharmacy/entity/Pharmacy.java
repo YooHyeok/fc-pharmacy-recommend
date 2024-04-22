@@ -1,4 +1,4 @@
-package com.recommend.pharmacy.api.entity;
+package com.recommend.pharmacy.domain.pharmacy.entity;
 
 import com.recommend.pharmacy.BaseEntity;
 import lombok.*;

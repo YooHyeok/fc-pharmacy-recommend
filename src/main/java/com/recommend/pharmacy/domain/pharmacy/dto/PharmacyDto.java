@@ -1,4 +1,4 @@
-package com.recommend.pharmacy.dto;
+package com.recommend.pharmacy.domain.pharmacy.dto;
 
 import lombok.Builder;
 import lombok.Getter;
