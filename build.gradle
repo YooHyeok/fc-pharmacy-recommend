@@ -33,9 +33,13 @@ dependencies {
     runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
     annotationProcessor 'org.projectlombok:lombok'
+
+    // CSV 라이브러리
+    implementation 'com.opencsv:opencsv:4.3'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
-    //spock
+    // spock
     testImplementation('org.spockframework:spock-core:2.1-groovy-3.0')
     testImplementation('org.spockframework:spock-spring:2.1-groovy-3.0') // Spring과 함께 사용하기 위해 필요
 
