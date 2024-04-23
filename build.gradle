@@ -37,6 +37,9 @@ dependencies {
     // CSV 라이브러리
     implementation 'com.opencsv:opencsv:4.3'
 
+    // RetryTemplate
+    implementation 'org.springframework.retry:spring-retry'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
     // spock
