@@ -67,4 +67,12 @@ public class PharmacyRepositoryService {
         if (CollectionUtils.isEmpty(pharmacyDtoList)) return Collections.emptyList();
         return pharmacyRepository.saveAll(pharmacyDtoList);
     }
+
+    /**
+     * 고객이 주소정보를 입력하면 가까운 약국을 찾아주기 위해 모든 약국리스트 검색
+     */
+    @Transactional(readOnly = true) // 읽기전용 성능향상 - Entity와 Snap샷간의 DirtyChecking 비교 비용 감소
+    public List<Pharmacy> findAll() {
+        return pharmacyRepository.findAll();
+    }
 }
