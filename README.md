@@ -1,5 +1,20 @@
-
 # *Docker*
+
+도커는 하나의 이미지당 하나의 컨테이너를 구동할 수있다.  
+즉, Application, Database, Redis 등 각각의 이미지를 빌드(생성)하고.   
+생성된 이미지를 기준으로 컨테이너를 생성하고 실행한다.
+
+**application**의 경우 로컬 터미널에서 Build명령을 통해 프로젝트의 디렉토리에 jar파일을 생성하고, Dockerfile에
+정의한 이미지화 할 명령들을 정의한 뒤 `docker build` 명령을 통해 이미지를 생성하고, `docker run`을 통해 생성한 이미지
+를 기준으로 컨테이너를 생성하고 실행한다.
+
+**Database와 Redis**의 경우 docker-componse.yml에 image빌드, 컨테이너 생성 및 실행에 대한 명령들을 정의하고
+`docker-compose` 명령을 통해 이미지빌드, 컨테이너를 생성하고 실행한다.
+
+추가로 application을 실행하는 컨테이너가 Database 혹은 Redis 컨테이너에 접근하기 위해 `property` 설정 파일에
+docker-compose 파일을 통해 포워딩한 각 컨테이너의 포트번호를 설정함으로 컨테이너간 연동을 가능케 한다.
+
+# *Jar 빌드 & 이미지-컨테이너 생성 및 구동*
 
 ### 1. login
 terminal에서 docker hub에서 가입시 입력했던 계정과 비밀번호를 입력하여 로그인한다.
@@ -17,13 +32,17 @@ docker login
       archiveFileName = 'app.jar'
     }
     ```
-  
+
 ### 3. Build 명령
+현재 프로젝트 디렉토리에 jar파일 생성한다.
 ```bash
 ./gradlew build
 ```
 
 ### 4. Dockerfile
+도커 이미지를 구성하기 위해 있어야할 패키지, 의존성, 소스코드 등을 하나의 file로 기록하여 이미지화 시킬 명령 파일.  
+이미지는 컨테이너를 실행하기 위한 모든 정보를 가지고 있기 때문에 더이상 새로운 서버가 추가되면 의존성 파일을 컴파일 하고
+이것 저것 설치할 필요가 없다.
 ```dockerfile
 FROM openjdk:11
 # openjdk 11을 사용
@@ -41,7 +60,7 @@ docker build -t {docker hub id}/application-pharmacy-test .
 ```
 docker hub id를 명령어에 함께 작성해야 하는 이유는 docker hub에 push할 때 아이디가 없으면    
 어떤 repository로 push해야 될지 찾을수 없게 된다.  
-참고로 docker hub id는 로그인시 입력하는 계정이 아닌 프로필에 뜨는 닉네임이다.  
+참고로 docker hub id는 로그인시 입력하는 계정이 아닌 프로필에 뜨는 닉네임이다.
 
 ### 6. Docker Container 생성 및 실행 명령
 
@@ -60,7 +79,7 @@ docker ps
 
 ### 8. 실제 Container 내부 접속 명령
 Shell이나 Bash등 터미널 환경으로 접근 가능하다.  
-container id에는 docker ps로 확인이 가능하다.  
+container id에는 docker ps로 확인이 가능하다.
 ```bash
 docker exec -it {container id} bash
 ```
@@ -70,7 +89,7 @@ ls
 ```
 위 명령을 통해 해당 컨테이너 내부에 카피한 app.jar파일 등 컨테이너 내부의 목록을 확인할 수 있게 된다.
 
-# *Docker Compose*
+# *Docker Compose (MariaDB & Redis)*
 멀티 컨테이너 도커 어플리케이션을 정의하고 실행하는 도구이다.  
 주로 싱글 컨테이너로는 사용하지 않고 보통 멀티컨테이너로 배포하는데, 예를들어 Application, Database, 
 Redis, Nginx 등 각각을 독립적인 컨테이너로 만들어 다중 컨테이너 환경으로 구성한다.  
