@@ -534,3 +534,50 @@ Spring Retry에는 어노테이션 방식과 RetryTemplate 방식 두가지가 �
   즉, kakaoAddressSearchService.requestAddressSearch(inputAddress)를 호출할때  
   내부적으로 kakaoUriBuilderService의 buildUriByAddressSearch가 호출되는데, 이때 반환하는 값을  
   MockWebServer에 의해 통제하기 위해 Spring이 관리할 수 있도록 제어하는것이다.  
+
+
+# Hadnlebars
+Handlebars는 흔히 사용하는 Freemarker, velocity와 같은 서버 템플릿 엔진이다.  
+JSP는 서버 템플릿 역할만 하지 않기 때문에 JSP와 완전히 똑같은 역할을 한다고 볼 수는 없으나, 순수하게 JSP를
+View용으로만 사용할 때 똑같은 역할이라고 이해하면 된다.
+결국 URL 요청시, 파라미터와 상태에 맞춰 적절한 HTML 화면을 생성해 전달하는 역할을 하는것으로 보면 된다.  
+JSP, Freemarker, Velocity가 몇년동안 업데이트 되고있지 않아 사실상 SpringBoot에서는 권장하지 않는 템플릿  
+엔진이다.  
+현재까지 꾸준히 업데이트 되고 있는 템플릿 엔진은 Thymeleaf, Handlebars이며, 이 중 하나를 선택하면 된다.  
+Spring 진영에서는 Thymeleaf를 밀고 있지만 Handlebars가 다른 템플릿 엔진보다 문법이 간단하고, 로직 코드를   
+사용할 수 없어 view의 역할과 서버의 역할을 명확하게 제한할 수 있다.
+
+템플릿에는 로직을 넣지 않는 것이 일반적이다.  
+로직을 넣으면 템플릿의 가독성이 떨어지고, 템플릿에서 오류가 발생했을 때 디버깅이 어렵다.  
+따라서 템플릿에 로직을 넣더라도 간단한 분기문, 배열, 반복문 정도만 사용하는 것이 좋다.  
+Handlebars.js와 Handlebars.java 2가지가 다 있어 하나의 문법으로 `클라이언트 템플릿` / `서버 템플릿` 모두   
+사용할 수 있다.
+
+### 의존성 추가
+```json
+implementation 'pl.allegro.tech.boot:handlebars-spring-boot-starter:0.3.4'
+```
+### Plugin 추가
+IntelliJ의 Plugin으로 콧수염 모양이 그려져있는 Handlebars/Mustache Plugin을 설치한다.  
+해당 플러그인을 통해 문법 체크 등과 같이 많은 지원을 받을 수 있다.
+
+### Handlebars 파일 생성
+다른 서버 템ㅍ플릿 스타터 패키지와 마찬가지로 Handlebars의 기본경로 또한 `src/main/resources/templates`이다.    
+따라서 `src/main/resources/templates` 디렉토리 하위에 `hbs`확장자인 `main.hbs` 파일을 생성한다.  
+(기본적인 파일은 JSP, Thymeleaf와 같은 HTML형태의 내용을 담는다.)
+
+### ViewResolver
+```java
+@Controller
+@RequiredArgsConstructor
+public class FormController {
+
+    @GetMapping("/")
+    public String main() {
+        return "main";
+    }
+}
+```
+앞서 의존성으로 추가한 handlebars-spring-boot-starter에 의해 **suffix** 확장자가 `.hbs`로 설정되어  
+기본경로인 **prefix** 하위의 `[prefix]/main.hbs` View Resolver 처리가 된다.  
+ → `src/main/resources/templates/main.hbs`
