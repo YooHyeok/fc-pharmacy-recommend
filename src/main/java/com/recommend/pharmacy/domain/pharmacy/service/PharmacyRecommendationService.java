@@ -3,6 +3,7 @@ package com.recommend.pharmacy.domain.pharmacy.service;
 import com.recommend.pharmacy.api.dto.DocumentDto;
 import com.recommend.pharmacy.api.dto.KakaoApiResponseDto;
 import com.recommend.pharmacy.api.service.KakaoAddressSearchService;
+import com.recommend.pharmacy.api.service.KakaoCategorySearchService;
 import com.recommend.pharmacy.domain.direction.entity.Direction;
 import com.recommend.pharmacy.domain.direction.service.DirectionService;
 import lombok.RequiredArgsConstructor;
@@ -36,8 +37,14 @@ public class PharmacyRecommendationService {
             return;
         }
 
-        DocumentDto documentDto = kakaoApiResponseDto.getDocumentList().get(0); //
-        List<Direction> directionList = directionService.buildDirectionList(documentDto); // 가까운 거리 기준 최대 3개 약국 목록 반환
+        DocumentDto documentDto = kakaoApiResponseDto.getDocumentList().get(0);
+
+        /* 공공기관 약국 데이터 및 거리계산 알고리즘 */
+//        List<Direction> directionList = directionService.buildDirectionList(documentDto); // DB에 저장된 데이터 기준 거리계산 알고리즘 적용 - 가까운 거리 기준 최대 3개 약국 목록 반환
+
+        /* Kakao API - 카테고리를 이용한 장소검색 api */
+        List<Direction> directionList = directionService.buildDirectionListBytCategoryApi(documentDto); // Kakao 카테고리 장소검색 API 적용 - 가까운 거리 기준 최대 3개 약국 목록 반환
+
         directionService.saveAll(directionList); // 반환된 약국목록 DB에 저장
     }
 }
