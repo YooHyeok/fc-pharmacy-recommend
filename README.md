@@ -400,3 +400,118 @@ Entity와 데이터베이스 간의 매핑이 Validate 즉, 일치 하는지 확
 
     6. **테이블 조회**  
        `select * from 테이블명;`
+
+# *Retry*
+실무에서는 실제로 시스템 안정성을 높이기 위해 어떻게하면 스마트하게 재처리를 할까에 대한 고민을 많이 한다.  
+하나의 예를 들어보면 여러 플로우가 이어지는 시스템에서 일시적인 Read Time Out 에러가 발생 했다고 가정했을 때  
+한번의 네트워크 호출 실패로 여러 플로우를 모두 다 실패 처리한다면 리소스 낭비가 될 수 있다.  
+(안좋은 고객 경험을 줄 수 있음)  
+이 경우 약간의 딜레이를 주어 재처리를 한다면 여러 플로우들에 대해 모두 다 실패로 처리하는것을 막을 수 있다.
+리소스 낭비를 줄일 수 있고, 고객 경험 관점에서도 좋아질 수 있다.
+
+## Spring Retry
+Spring에서 재시도 기능을 지원하는 라이브러리로는 대표적으로 Resilience4j와 Spring Retry 등이 있다.  
+
+### 재처리 고려사항
+1. 재시도를 몇 번 실행시킬 것인가?
+2. 재시도 하기 전 지연시간을 얼마나 줄것인가?  
+   일시 장애(Read Time Out)의 경우 Delay없이 5회를 호출한다고 가정한다면 모두 다 실패할 가능성이 높게됨.
+3. 재시도를 모두 실패했을 경우 어떻게 처리할 것인가?  
+   fallback 처리에 대해 Log만 남길지, 다른 부분으로 대응해서 리턴값을 넘겨줄지에 대한 결정
+
+위와같은 고려사항들을 자바 코드로 구현하여 사용할 수 있으나, 비즈니스 로직에 집중할 수 있도록 Spring에서 제공하는
+라이브러리를 사용하여 간결한 코드와 유지보수에 대한 장점을 얻는다.  
+
+Spring Retry에는 어노테이션 방식과 RetryTemplate 방식 두가지가 있다.
+
+ - `build.gradle` 디펜던시 추가
+    ```json
+    implementation 'org.springframework.retry:spring-retry'
+    ``` 
+ - Retry 활성화  
+    @Configuration 어노테이션으로 설정파일을 구성하고 @EnableRetry 어노테이션을 통해 Retry를 활성화한다.
+    ```java
+    @EnableRetry // Spring Retry 활성화
+    @Configuration
+    public class RetryConfig {}
+    ```
+ - Retry 적용  
+    `@Retryable` 어노테이션을 Api를 직접적으로 호출하는 메소드위에 선언한다.  
+    `value` 속성을 통해 Retry를 적용시킬 Exception 종류를 지정하고,  
+    `maxAttemps` 속성을 통해 최대 재시도 횟수를 지정한다. (Default는 3회)  
+    `backoff` 속성을 통해 지연시간을 적용한다.
+    ```java
+   @Retryable( // Spring Retry 활성화 어노테이션
+            value = {RuntimeException.class},// Retry를 적용할 Exception 종류를 지정, default 재시도 최대 3회 딜레이 1초
+            maxAttempts = 2, // 최대 2회 재시도
+            backoff = @Backoff(delay = 2000) // 지연시간 2초
+   )
+    public KakaoApiResponseDto requestAddressSearch(String address) {
+        if(ObjectUtils.isEmpty(address)) return null; // Validation검증:  주소가 null값이거나 빈값일경우
+        /* uri */
+        URI uri = kakaoUrilBuilderService.buildUriByAddressSearch(address);
+        /* header */
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, "KakaoAK " + kakaoRestApiKey);
+        /* httpEntity */
+        HttpEntity httpEntity = new HttpEntity<>(headers);
+
+        // kakao api 호출
+        return restTemplate.exchange(uri, HttpMethod.GET, httpEntity, KakaoApiResponseDto.class)
+                .getBody(); // (url, 요청방식, HttpEntity, 반환클래스) 주입
+    }
+    ```
+    
+ - fallback 적용  
+    @Recover 어노테이션을 실패할 로직을 구현한 메소드에 선언한다.    
+    이때, Retry를 활성화한 @Retryable 어노테이션을 선언한 메소드의 반환타입과 일치해야한다.  
+    또한, 첫번째 매개변수로는 @Retryable 어노테이션에 설정한 Exception을, 두번째 매개변수 부터는  
+    파라미터를 순차적으로 지정해주면 된다.  
+    ```java
+    @Recover // fallback 처리 → 재시도 처리가 모두 실패했을 경우 사용. (Retry를 활성화한 메소드의 리턴타입과 일치해야함)
+    public KakaoApiResponseDto recover(RuntimeException e, String address) {
+        log.error("All the retries failed. address: {}, error: {}", address, e.getMessage());
+        return null;
+    }
+    ```
+   
+## TEST (MockWebServer, @SpringBean)
+
+### MockWebServer  
+   예를들어 서버에서 직접 실패 처리를 응답값으로 보내는 등 테스트를 해야할 경우  
+   외부 서버 제어를 하기 까다롭기 때문에 웹서버를 모킹하여 응답값등을 조작할 때 사용한다.
+
+### @SpringBean
+  Spock에서 사용하며, Mockito의 MockBean과 같이 Spring Container 내에 있는 빈을 모킹한다.
+  
+  `@Autowired에 의한`  
+  KakaoAddressSearchService의 requestAddressSearch()를 호출하면 해당 메소드 내부에서   
+  KakaoUriBuilderService의 buildUriByAddressSearch()가 호출된다.
+   
+  이때 KakaoAddressSearchService는 @Autowired에 의해 Spring Container에서 관리되는 빈이므로,  
+  KakaoAddressSearchService의 requestAddressSearch() 내부에서 사용하는 KakaoUriBuilderService의 객체도  
+  Spring 컨테이너에 의해 관리되어야 하는게 맞다.
+   
+  만약 일반적인 Spock의 Mock() 방식을 통해 KakaoAddressSearchService와 KakaoUriBuilderService를 모킹한다면  
+  KakaoAddressSearchService의 requestAddressSearch() 내부에서 함께 의존적으로 사용되는 RestTemplate에 대한 모킹과  
+  exchance().getBody()에 대한 매개변수 초기화도 모두 이곳에서 따로 설정 해야한다.
+  
+  `AOP와의 연관성`  
+  하지만 Retry 기능 측면에서 봤을때, 일반적인 Mocking에서는 Retry가 적용되지 않는다.  
+  @Retryable 어노테이션은 Spring에서 지원하는 기능이기 때문에 해당 메소드가 Spring의 프록시로 래핑되어야 한다.  
+  다시말해 Spring에서 해당 메소드호출을 감싸고 AOP에 의해 메소드에서 발생하는 예외를 catch하여 재시도 로직을 적용하기 때문이다. 
+
+  Mocking방식에서는 이러한 Spring의 Proxy매커니즘이 적용되지 않기 때문에 Retry가 적용되지 않는것이다.  
+  따라서 Retryable 메소드의 Retry동작을 테스트하기 위해서는 Spring Container에서 빈을 관리하고 해당 빈을 주입받아  
+  Retryable 메소드를 호출하는 방식을 사용해야 한다.  
+  테스트 코드에서는 이를 위해 @MockBean이나, @SpringBean을 사용하여 Mock객체로 대체하거나, 테스트케이스에서 직접  
+  Container로부터 빈을 가져와 테스트를 수행해야 한다.  
+  (Spring AOP기능을 이용한 Retryable 메소드의 동작은 Mocking을 통해 재현 가능하지만 AOP를 적용하는 코드 구현이 어렵다.)  
+
+  `실제 적용된 코드 예`  
+  KakaoUriBuilderService의 buildUriAddressSearch는 실제 카카오 API를 호출하기 위한 URI를 반환해준다.  
+  테스트에서는 실제 카카오 API를 호출하는것이 아니라 로컬호스트에 띄운 MockWebServer를 호출한다.  
+  따라서 KakaoUriBuilderService를 모킹하여 URI자체를 로컬호스트의 Mockserver에 응답해주도록 모킹한다.  
+  즉, kakaoAddressSearchService.requestAddressSearch(inputAddress)를 호출할때  
+  내부적으로 kakaoUriBuilderService의 buildUriByAddressSearch가 호출되는데, 이때 반환하는 값을  
+  MockWebServer에 의해 통제하기 위해 Spring이 관리할 수 있도록 제어하는것이다.  
