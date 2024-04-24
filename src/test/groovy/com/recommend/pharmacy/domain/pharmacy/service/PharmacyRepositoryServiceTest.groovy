@@ -1,4 +1,4 @@
-package com.recommend.pharmacy.service
+package com.recommend.pharmacy.domain.pharmacy.service
 
 import com.recommend.pharmacy.AbstractIntergaionContainerBaseTest
 import com.recommend.pharmacy.domain.pharmacy.entity.Pharmacy
