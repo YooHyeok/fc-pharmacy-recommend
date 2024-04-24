@@ -2,12 +2,15 @@ package com.recommend.pharmacy.domain.direction.service;
 
 import com.recommend.pharmacy.api.dto.DocumentDto;
 import com.recommend.pharmacy.domain.direction.entity.Direction;
+import com.recommend.pharmacy.domain.direction.repository.DirectionRepository;
 import com.recommend.pharmacy.domain.pharmacy.dto.PharmacyDto;
 import com.recommend.pharmacy.domain.pharmacy.service.PharmacyRepositoryService;
 import com.recommend.pharmacy.domain.pharmacy.service.PharmacySearchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -19,10 +22,21 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class DirectionService {
+    private final DirectionRepository directionRepository;
 
     private static final int MAX_SEARCH_COUNT = 3;// 약국 최대 검색 갯수
     private static final double RADIUS_KM = 10.0;// 반경 10 KM
     private final PharmacySearchService pharmacySearchService;
+
+    /**
+     * 최대 3개의 약국데이터 거리계산 목록 벌크 저장
+     */
+    @Transactional
+    public List<Direction> saveAll(List<Direction> directionList) {
+        if(CollectionUtils.isEmpty(directionList)) return Collections.emptyList(); // 목록이 비어있으면 저장처리하지 않고 빈 컬렉션 반환
+        return directionRepository.saveAll(directionList);
+    }
+
 
     /**
      * 최대 3개의 약국 데이터
