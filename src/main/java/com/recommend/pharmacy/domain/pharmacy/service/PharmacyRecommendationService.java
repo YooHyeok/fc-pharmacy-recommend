@@ -4,6 +4,7 @@ import com.recommend.pharmacy.api.dto.DocumentDto;
 import com.recommend.pharmacy.api.dto.KakaoApiResponseDto;
 import com.recommend.pharmacy.api.service.KakaoAddressSearchService;
 import com.recommend.pharmacy.api.service.KakaoCategorySearchService;
+import com.recommend.pharmacy.domain.direction.dto.OutputDto;
 import com.recommend.pharmacy.domain.direction.entity.Direction;
 import com.recommend.pharmacy.domain.direction.service.DirectionService;
 import lombok.RequiredArgsConstructor;
@@ -11,8 +12,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * 약국 추천 서비스
@@ -29,14 +32,13 @@ public class PharmacyRecommendationService {
     private final KakaoAddressSearchService kakaoAddressSearchService;
     private final DirectionService directionService;
 
-    public void recommendPharmacyList(String address) {
+    public List<OutputDto> recommendPharmacyList(String address) {
         KakaoApiResponseDto kakaoApiResponseDto = kakaoAddressSearchService.requestAddressSearch(address); // 주소 API를 통해
 
         if (Objects.isNull(kakaoApiResponseDto) || CollectionUtils.isEmpty(kakaoApiResponseDto.getDocumentList())) {
             log.error("[PharmacyRecommendationService recommendPharmacyList fail] Input address: {}", address);
-            return;
+            return Collections.emptyList();
         }
-
         DocumentDto documentDto = kakaoApiResponseDto.getDocumentList().get(0);
 
         /* 공공기관 약국 데이터 및 거리계산 알고리즘 */
@@ -45,6 +47,19 @@ public class PharmacyRecommendationService {
         /* Kakao API - 카테고리를 이용한 장소검색 api */
         List<Direction> directionList = directionService.buildDirectionListBytCategoryApi(documentDto); // Kakao 카테고리 장소검색 API 적용 - 가까운 거리 기준 최대 3개 약국 목록 반환
 
-        directionService.saveAll(directionList); // 반환된 약국목록 DB에 저장
+        return directionService.saveAll(directionList)// 반환된 약국목록 DB에 저장
+                .stream()
+                .map(this::convertToOutputDto)// output에 맞는 형태로 변환
+                .collect(Collectors.toList());
+    }
+
+    private OutputDto convertToOutputDto(Direction direction) {
+        return OutputDto.builder()
+                .pharmacyName(direction.getTargetPharmacyName())
+                .pharmacyAddress(direction.getInputAddress())
+                .directionUrl("todo") // todo - 추구 구현 해야할것...
+                .roadViewUrl("todo")
+                .distance(String.format("%.2f km", direction.getDistance())) // 거리 포맷변환
+                .build();
     }
 }
