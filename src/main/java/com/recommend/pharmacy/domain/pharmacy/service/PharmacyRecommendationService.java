@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Collections;
 import java.util.List;
@@ -31,6 +32,9 @@ import java.util.stream.Collectors;
 public class PharmacyRecommendationService {
     private final KakaoAddressSearchService kakaoAddressSearchService;
     private final DirectionService directionService;
+
+    private static final String ROAD_VIEW_BASE_URL = "https://map.kakao.com/link/roadview/";
+    private static final String DIRECTION_BASE_URL = "https://map.kakao.com/link/map/";
 
     public List<OutputDto> recommendPharmacyList(String address) {
         KakaoApiResponseDto kakaoApiResponseDto = kakaoAddressSearchService.requestAddressSearch(address); // 주소 API를 통해
@@ -53,12 +57,23 @@ public class PharmacyRecommendationService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 화면에 출력해줄 정보를 담는 OutputDto로 변환하는 메소드
+     */
     private OutputDto convertToOutputDto(Direction direction) {
+        String params = String.join(
+                ",",
+                direction.getTargetPharmacyName(),
+                String.valueOf(direction.getTargetLatitude()),
+                String.valueOf(direction.getTargetLongitude())
+        );
+        String result = UriComponentsBuilder.fromHttpUrl(DIRECTION_BASE_URL + params).toUriString(); // 문자열 URI 인코딩
+        log.info("direction params: {}, url: {}", params, result);
         return OutputDto.builder()
                 .pharmacyName(direction.getTargetPharmacyName())
                 .pharmacyAddress(direction.getInputAddress())
-                .directionUrl("todo") // todo - 추구 구현 해야할것...
-                .roadViewUrl("todo")
+                .directionUrl(result) // URI를 위한 문자열로 변환
+                .roadViewUrl(ROAD_VIEW_BASE_URL + direction.getTargetLatitude() + "," + direction.getInputLongitude()) // 그냥 문자열결합
                 .distance(String.format("%.2f km", direction.getDistance())) // 거리 포맷변환
                 .build();
     }
