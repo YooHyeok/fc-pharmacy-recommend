@@ -581,3 +581,56 @@ public class FormController {
 앞서 의존성으로 추가한 handlebars-spring-boot-starter에 의해 **suffix** 확장자가 `.hbs`로 설정되어  
 기본경로인 **prefix** 하위의 `[prefix]/main.hbs` View Resolver 처리가 된다.  
  → `src/main/resources/templates/main.hbs`
+
+### each helper 예제
+```java
+modelAndView.addObject("outputFormList", pharmacyRecommendationService.recommendPharmacyList(inputDto.getAddress()));
+```
+```html
+<table>
+{{#each outputFormList}}
+    <tr>
+        <td>{{pharmacyName}}</td>
+        <td>{{pharmacyAddress}}</td>
+        <td>{{distance}}</td>
+        <td><a href="{{directionUrl}}">{{directionUrl}}</a></td>
+        <td><a href="{{raodViewUrl}}">{{raodViewUrl}}</a></td>
+    </tr>
+{{/each}}
+</table>
+```
+위와같은 문법으로 loop를 통해 객체에 접근하고, 매 순회시 접근 한 객체에 field 접근 또한 가능
+
+# *MockMvc*
+<a href="https://wonyong-jang.github.io/spring/2022/07/08/Spring-MockMvc.html"> 
+    강의 래퍼런스
+<a/>  
+
+일반적으로 웹 애플리케이션은 Tomcat이라는 WAS(Web Application Server)에 배포하여 실행.  
+브라우저 요청은 WAS에 전달되고 응답도 WAS로부터 받음.
+WAS는 요청을 받은 후, 해당 요청을 처리하는 웹 어플리케이션을 실행함.  
+
+(Tomcat은 대표적인 서블릿 컨테이너 중 하나이며, 톰캣같은 WAS가 java파일을  
+컴파일해서 class로 만들고 메모리에 올려 서블릿 객체를 만듬)  
+
+위와같은 흐름에서 Web API 테스트는 WAS를 실행해야만 된다는 문제가 있음 MockMvc는 이런 문제 해결이 가능
+
+스프링 3.2부터 스프링 MVC를 모킹하여 웹 어플리케이션을 테스트하는 라이브러리인 MockMvc를 통해  
+실제 서블릿 컨테이너에서 컨트롤러를 실행하지 않고도 컨트롤러에 Http 요청을 할 수 있다.  
+스프링 MockMVC 프레임워크는 어플리케이션을 마치 서블릿 컨테이너에서 실행하는 것처럼 스프링 MVC를   
+흉내 내지만 실제 컨테이너에서 실행하지는 않는다.  
+
+### 서블릿 컨테이너 모킹 의미  
+웹 환경의 컨트롤러 테스트시 서블릿 컨테이너가 구동되고 DispatcherServlet 객체가 메모리에 올라가야함.  
+이때 서블릿 컨테이너를 모킹하면 실제 서블릿 컨테이너가 아닌 테스트 모형 컨테이너를 사용하여 간단하게   
+컨트롤러에 대한 테스트가 가능함.
+
+테스트에서 Mock MVC를 설정하려면 `MockMvcBuilders`를 사용하며, 해당 클래스는 2개의 정적 메소드를 제공함.
+- `standaloneSetup()` 통합 테스트와 유사
+- `webAppContextSetup()` 단위 테스트와 유사
+
+### MVC 테스트 요소
+- 요청 경로에 대해 적절한 handler method가 호출되는가
+- 입력 파라미터는 handler method에 잘 전될되는가
+- model에 설정한 값은 잘 참조하는가
+- 요청 결과 페이지는 잘 연결되는가.
