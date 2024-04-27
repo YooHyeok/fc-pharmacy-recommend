@@ -35,12 +35,18 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class DirectionService {
-    private final DirectionRepository directionRepository;
 
     private static final int MAX_SEARCH_COUNT = 3;// 약국 최대 검색 갯수
     private static final double RADIUS_KM = 10.0;// 반경 10 KM
+    private final DirectionRepository directionRepository;
     private final PharmacySearchService pharmacySearchService;
     private final KakaoCategorySearchService kakaoCategorySearchService;
+    private final Base62Service base62Service;
+
+    public Direction findById(String encodedId) {
+        Long decodedId = base62Service.decodeDirectionId(encodedId);
+        return directionRepository.findById(decodedId).orElse(null);
+    }
 
     /**
      * 최대 3개의 약국데이터 거리계산 목록 벌크 저장
