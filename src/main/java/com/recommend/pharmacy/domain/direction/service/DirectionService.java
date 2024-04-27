@@ -5,13 +5,13 @@ import com.recommend.pharmacy.api.service.KakaoCategorySearchService;
 import com.recommend.pharmacy.domain.direction.entity.Direction;
 import com.recommend.pharmacy.domain.direction.repository.DirectionRepository;
 import com.recommend.pharmacy.domain.pharmacy.dto.PharmacyDto;
-import com.recommend.pharmacy.domain.pharmacy.service.PharmacyRepositoryService;
 import com.recommend.pharmacy.domain.pharmacy.service.PharmacySearchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -38,14 +38,27 @@ public class DirectionService {
 
     private static final int MAX_SEARCH_COUNT = 3;// 약국 최대 검색 갯수
     private static final double RADIUS_KM = 10.0;// 반경 10 KM
-    private final DirectionRepository directionRepository;
+    private static final String DIRECTION_BASE_URL = "https://map.kakao.com/link/map/";
     private final PharmacySearchService pharmacySearchService;
+    private final DirectionRepository directionRepository;
     private final KakaoCategorySearchService kakaoCategorySearchService;
     private final Base62Service base62Service;
 
-    public Direction findById(String encodedId) {
+    public String findByDirectionUrlById(String encodedId) {
+
         Long decodedId = base62Service.decodeDirectionId(encodedId);
-        return directionRepository.findById(decodedId).orElse(null);
+        Direction resultDirection = directionRepository.findById(decodedId).orElse(null);
+        String params = String.join(
+                ",",
+                resultDirection.getTargetPharmacyName(),
+                String.valueOf(resultDirection.getTargetLatitude()),
+                String.valueOf(resultDirection.getTargetLongitude())
+        );
+
+        String result = UriComponentsBuilder.fromHttpUrl(DIRECTION_BASE_URL + params)
+                .toUriString();
+        log.info("direction params: {}, url: {}" ,params ,result);
+        return result;
     }
 
     /**
