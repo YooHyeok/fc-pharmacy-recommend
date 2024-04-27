@@ -39,7 +39,14 @@ spring:
       ddl-auto: validate
     show-sql: true
 
+# shorten url에서 사용할 base url을 이곳에 미리 설정한다.
+pharmacy:
+  recommendation:
+    base:
+      url: http://localhost:8080/dir/
+
 ---
+
 spring:
   config:
     activate:
