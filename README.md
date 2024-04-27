@@ -634,3 +634,34 @@ WAS는 요청을 받은 후, 해당 요청을 처리하는 웹 어플리케이�
 - 입력 파라미터는 handler method에 잘 전될되는가
 - model에 설정한 값은 잘 참조하는가
 - 요청 결과 페이지는 잘 연결되는가.
+
+
+# *Shorten URL (Base62 Encode)*
+
+1. 파라미터에 사용될 정보조회를 위한 DB PK 값 `인코딩` 후 로컬 서버 API URL로 제공.
+2. 사용자가 해당 URL 클릭시 전달된 PK 파라미터값을 `디코딩`하여 DB조회 후 Entity반환
+3. URL에 사용될 데이터를 조회한 Entity로부터 추출하여 외부 API URL 생성 및 Redirect
+
+- **Base62 인코딩을 위한 디펜던시 추가**
+    ```json
+        // https://github.com/seruco/base62
+        implementation 'io.seruco.encoding:base62:0.1.3'
+    ```
+  
+- **Encode, Decode**
+    ```java
+        /**
+     * [인코딩] DB Sequence값을 받아 Base62 인코딩
+     */
+    public String encodeDirectionId(Long id) {
+        return new String(base62Instance.encode(String.valueOf(id).getBytes()));
+    }
+
+    /**
+     * [디코딩] 인코딩 된 ID를 DB Sequence 원본 형태로 디코딩
+     */
+    public Long decodeDirectionId(String encodedId) {
+        String decodedId = new String(base62Instance.decode(String.valueOf(encodedId).getBytes()));
+        return Long.valueOf(decodedId);
+    }
+    ```
