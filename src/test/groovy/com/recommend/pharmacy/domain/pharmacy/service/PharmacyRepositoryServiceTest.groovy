@@ -57,7 +57,8 @@ class PharmacyRepositoryServiceTest extends AbstractIntergaionContainerBaseTest 
         def result = pharmacyRepository.findAll()
 
         then:
-        result.get(0).getPharmacyAddress() == modifiedAddress
+        result.get(0).getPharmacyAddress() != modifiedAddress
+        result.get(0).getPharmacyAddress() == inputAddress
     }
 
     def "self invocation"() {
