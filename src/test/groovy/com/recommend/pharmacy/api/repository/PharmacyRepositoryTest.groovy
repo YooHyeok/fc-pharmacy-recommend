@@ -91,6 +91,6 @@ class PharmacyRepositoryTest extends AbstractIntergaionContainerBaseTest {
         def result = pharmacyRepository.findAll()
         then:
         result.get(0).getCreatedDate()isAfter(now) //매개변수로 넘겨받은 값 보다 더 최근인지 확인하는 메소드
-        result.get(0).getModifieDate()isAfter(now)
+        result.get(0).getModifiedDate()isAfter(now)
     }
 }
