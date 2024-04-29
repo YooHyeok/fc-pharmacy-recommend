@@ -665,3 +665,29 @@ WAS는 요청을 받은 후, 해당 요청을 처리하는 웹 어플리케이�
         return Long.valueOf(decodedId);
     }
     ```
+
+# *Gradle Test & Build*
+Gradle을 통해 지금까지 작성한 테스트 코드를 실행하고 문제가 발생하지 않을 경우 (조건부 컴파일) jar파일로 Build  
+될 수 있게 한다.
+
+- ### build.gradle
+  `processTestResources` 테스크로 테스트 리소스를 처리하도록 정의한다.  
+  `hasProperty()` 는 터미널을 통한 Build 명령에서 부여하는 Property의 존재여부를 확인한다.  
+  `filesMatching()` 블록은 test디렉토리 하위에서 지정한 파일을 찾고 해당 파일에 Gradle 프로퍼티를 확장하여  
+  값을 설정하는 역할을 한다.   
+  (명령어를 통한 KAKAO_REST_API_KEY Property가 application.yml에 미리 선언되어 있고, 해당 Property에 매핑됨)
+    ```json
+    processTestResources {
+        boolean hasProperty = project.hasProperty("KAKAO_REST_API_KEY")
+        System.out.println("Set kakao rest api key: $hasProperty")
+        filesMatching('**/application.yml') {
+            expand(project.properties)
+        }
+    }
+    ```
+
+- ### Terminal 명령  
+    명령어를 통해 전체 테스트 및 빌드하여 jar 파일 생성한다.
+    ```text
+    ./gradlew clean build -PKAKAO_REST_API_KEY={api key 값} 
+    ```
