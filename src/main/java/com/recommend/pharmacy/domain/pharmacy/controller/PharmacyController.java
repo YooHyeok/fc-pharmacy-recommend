@@ -1,5 +1,7 @@
 package com.recommend.pharmacy.domain.pharmacy.controller;
 
+import com.recommend.pharmacy.domain.pharmacy.cache.PharmacyRedisTemplateService;
+import com.recommend.pharmacy.domain.pharmacy.dto.PharmacyDto;
 import com.recommend.pharmacy.domain.pharmacy.entity.Pharmacy;
 import com.recommend.pharmacy.domain.pharmacy.service.PharmacyRepositoryService;
 import com.recommend.pharmacy.util.CsvUtils;
@@ -17,6 +19,42 @@ import java.util.stream.Collectors;
 public class PharmacyController {
 
     private final PharmacyRepositoryService pharmacyRepositoryService;
+    private final PharmacyRedisTemplateService pharmacyRedisTemplateService;
+
+    /**
+     * Redis에 MariaDB에 저장된 데이터 전체 저장
+     * docker ps -> ContainerID 조회
+     * docker exec -it [ContainerId] redis-cli --raw
+     * hgetall PHARMACY
+     */
+    @GetMapping("/redis/save")
+    public String save() {
+        /*List<PharmacyDto> pharmacyDtos = pharmacyRepositoryService.findAll()
+                .stream()
+                .map(pharmacy ->
+                        PharmacyDto.builder()
+                                .id(pharmacy.getId())
+                                .pharmacyName(pharmacy.getPharmacyName())
+                                .pharmacyAddress(pharmacy.getPharmacyAddress())
+                                .latitude(pharmacy.getLatitude())
+                                .longitude(pharmacy.getLongitude())
+                                .build()
+                ).collect(Collectors.toList());
+        pharmacyDtos.forEach(pharmacyRedisTemplateService::save);*/
+        pharmacyRepositoryService.findAll()
+                .stream()
+                .map(pharmacy ->
+                        PharmacyDto.builder()
+                                .id(pharmacy.getId())
+                                .pharmacyName(pharmacy.getPharmacyName())
+                                .pharmacyAddress(pharmacy.getPharmacyAddress())
+                                .latitude(pharmacy.getLatitude())
+                                .longitude(pharmacy.getLongitude())
+                                .build()
+                ).forEach(pharmacyRedisTemplateService::save);
+        return "success";
+    }
+
 
     @GetMapping("/csv/save")
     public String saveCsv() {
