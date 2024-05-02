@@ -691,3 +691,82 @@ Gradle을 통해 지금까지 작성한 테스트 코드를 실행하고 문제�
     ```text
     ./gradlew clean build -PKAKAO_REST_API_KEY={api key 값} 
     ```
+
+# *Redis*
+key: value 형태로 저장하는 데이터베이스로, 하드디스크에 저장되는것이 아닌 1차적으로 램에 저장된다.  
+메인 데이터베이스가 있고, 자주 필요한 데이터는 Redis에 추가로 복사해둔 뒤 해당 데이터가 필요하면 메인  
+데이터베이스가 아닌 따로 저장해둔 Redis에서 꺼내어 보여준다.  
+램은 하드보다 몇백배 빠른 특성을 가지고 있어 위와같이 램을 사용하는 Redis로 구성하면 굉장히 빠른 서비스를  
+만들수 있을 때, 즉, 자주 사용하는 데이터 캐싱, 채팅을 위한 Pub/Sub, 영상 스트리밍, 로그인 기록 저장 등과  
+같은 용도의 Sub DB로 활용한다.
+
+String, List, Sets, Hashes, Sorted Sets 등 다양한 자료구조를 제공하기 때문에 단순한 key value  
+형태라고 말할 수 없다.
+Redis 캐싱을 이용하여 성능을 개선하고자 할때, 캐싱 데이터는 update가 자주 일어나지 않는 데이터가 효과적이다.  
+데이터베이스가 변경이 될 때마다 캐싱해놓은 데이터도 업데이트를 해줘야 하기 때문에 너무 많은 update가 일어나는  
+데이터일 경우, DB와의 Sync 비용이 발생하게 된다.
+
+Redis 사용시 반드시 failover(장애) 발생에 대한 고려를 해야한다.  
+ex) 레디스 장애시 데이터베이스에서 조회, 레디스 이중화 백업 등
+
+## redis-cli 접속
+--raw : 한글 깨질때 사용하는 옵션  
+```text/plain
+docker exec -it 906c77829945 redis-cli --raw
+```
+
+## 자료구조를 통한 저장
+
+### String
+
+- id key에 value 10 저장  
+  set id 10
+- id key로 저장된 value 조회  
+  get id
+- id key 삭제  
+  del id
+- key를 일정 단위 개수 만큼씩 조회
+  sacn 0
+
+### Hash
+key - subKey - value 형태
+
+- #### id key에 name이라는 subkey와 value 10을 매핑하여 저장  
+  `hset id name value`
+
+- #### id key로 저장된 모든 hash set 조회  
+  - 명령어  
+    `hgetall id`  
+
+  - 출력  
+    `name`  
+    `value`
+
+- #### id key로 저장된 subkey가 name인 hash set 데이터 조회  
+  - 명령어  
+    `hget id name`  
+  - 출력    
+    `value`
+
+### Geospatial
+geoadd [자료구조명] [경도] [위도] [이름]
+
+#### 위도경도 저장 및 거리계산
+- geopoints1 이라는 자료구조에 pharmacy1,2 각각의 이름으로 경도 위도를 추가  
+  `geoadd geopoints1 127.0817 37.5505 pharmacy1`  
+  `geoadd geopoints1 127.0766 37.541 pharmacy2`
+
+
+- pharmacy1과 2 두 지역간의 거리 km 값 리턴  
+  `geodist geopoints1 pharmacy1 pharmacy2 km`
+
+#### 데이터 3개 저장 후 주어진 위도경도 기준 반경 10km 이내 가까운 약국 찾기
+
+- 약국 데이터 3개 저장  
+  `geoadd geopoints2 127.0569046 37.61040424 pharmacy1`  
+  `geoadd geopoints2 127.029052 37.60894036 pharmacy2`  
+  `geoadd geopoints2 127.236707811313 37.3825107393401 pharmacy3`
+
+
+- 주어진 경도/위도 기준 반경 10km이내 가까운 약국 검색  
+  `georadius geopoints2 127.037033003036 37.596065045809 10 km withdist withcoord asc count 3`
