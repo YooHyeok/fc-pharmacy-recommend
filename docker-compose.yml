@@ -1,0 +1,41 @@
+version: "3.8"
+services:
+  pharmacy-recommend-redis:
+    container_name: pharmacy-recommend-redis
+    build:
+      dockerfile: Dockerfile
+      context: ./redis
+    image: iamhyeok/pharmacy-recommend-redis # 도커 이미지명을 지을때는 도커 허브에 push할 때 어떤 repository로 push해야하는지 찾지 못하기 때문에 도커 허브 아이디가 먼저 명시가 되어야한다.
+    ports:
+      - "6379:6379"
+  pharmacy-recommend-database:
+    container_name: pharmacy-recommend-database
+    build:
+      dockerfile: Dockerfile
+      context: ./database
+    image: iamhyeok/pharmacy-recommend-database # 도커 이미지명을 지을때는 도커 허브에 push할 때 어떤 repository로 push해야하는지 찾지 못하기 때문에 도커 허브 아이디가 먼저 명시가 되어야한다.
+    environment:
+      - MARIADB_DATABASE=pharmacy-recommend
+      - MARIADB_ROOT_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+    volumes:
+      - ./database/config:/etc/mysql/conf.d
+      - ./database/init:/docker-entrypoint-initdb.d
+    ports:
+      - "3306:3306"
+  pharmacy-recommend-app:
+    container_name: pharmacy-recommend-app
+    build: .
+    depends_on:          # DB, REDIS 컨테이너가 실행된 다음 WEB을 실행시킨다.
+      - pharmacy-recommend-database
+      - pharmacy-recommend-redis
+    image: iamhyeok/pharmacy-recommend-app
+    environment:
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - KAKAO_REST_API_KEY=${KAKAO_REST_API_KEY}
+    ports:
+      - "80:8080"
+    restart: always # depends on은 실행 순서만 컨트롤 할뿐,
+    # 컨테이너 안의 서비스가 실행가능한 상태인지까지는 확인 하지 않기 때문에
+    # DB 또는 Redis가 아직 실행가능한 상태가 아니여서 실패하는 경우 재시작 하도록 설정
