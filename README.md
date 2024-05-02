@@ -688,7 +688,7 @@ Gradle을 통해 지금까지 작성한 테스트 코드를 실행하고 문제�
 
 - ### Terminal 명령  
     명령어를 통해 전체 테스트 및 빌드하여 jar 파일 생성한다.
-    ```text
+    ```bash
     ./gradlew clean build -PKAKAO_REST_API_KEY={api key 값} 
     ```
 
@@ -770,3 +770,84 @@ geoadd [자료구조명] [경도] [위도] [이름]
 
 - 주어진 경도/위도 기준 반경 10km이내 가까운 약국 검색  
   `georadius geopoints2 127.037033003036 37.596065045809 10 km withdist withcoord asc count 3`
+
+# 운영환경 Docker Build 하기
+
+- ### docker-compose.yml
+    ```yml
+        version: "3.8"
+        services:
+          pharmacy-recommend-redis:
+            container_name: pharmacy-recommend-redis
+            build:
+              dockerfile: Dockerfile
+              context: ./redis
+            image: iamhyeok/pharmacy-recommend-redis
+            ports:
+              - "6379:6379"
+          pharmacy-recommend-database:
+            container_name: pharmacy-recommend-database
+            build:
+              dockerfile: Dockerfile
+              context: ./database
+            image: iamhyeok/pharmacy-recommend-database
+            environment:
+              - MARIADB_DATABASE=pharmacy-recommend
+              - MARIADB_ROOT_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+            volumes:
+              - ./database/config:/etc/mysql/conf.d
+              - ./database/init:/docker-entrypoint-initdb.d
+            ports:
+              - "3306:3306"
+          pharmacy-recommend-app:
+            container_name: pharmacy-recommend-app
+            build: .
+            depends_on:          
+              - pharmacy-recommend-database
+              - pharmacy-recommend-redis
+            image: iamhyeok/pharmacy-recommend-app
+            environment:
+              - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+              - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+              - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+              - KAKAO_REST_API_KEY=${KAKAO_REST_API_KEY}
+            ports:
+              - "80:8080"
+            restart: always # depends on은 실행 순서만 컨트롤 할뿐,
+    ```
+
+- ### application.yml
+    ```yaml
+    spring:
+      config:
+        activate:
+          on-profile: prod
+      datasource:
+        driver-class-name: org.mariadb.jdbc.Driver
+        url: jdbc:mariadb://pharmacy-recommend-database:3306/pharmacy-recommend
+        username: ${SPRING_DATASOURCE_USERNAME}
+        password: ${SPRING_DATASOURCE_PASSWORD}
+    redis:
+      host: pharmacy-recommend-redis
+      port: 6379
+    jpa:
+      hibernate:
+        ddl-auto: validate # prod 배포시 validate
+      show-sql: true
+
+    pharmacy:
+      recommendation:
+        base:
+          url: http://localhost/dir/
+    ```
+- ### Terminal 명령
+  명령어를 통해 전체 테스트 및 빌드하여 jar 파일 생성한다.
+    ```bash
+    ./gradlew clean build -PKAKAO_REST_API_KEY={api key 값} 
+    ```
+
+- ### Terminal 명령
+  명령어를 통해 전체 테스트 및 빌드하여 jar 파일 생성한다.
+    ```bash
+    docker-compose up --build 
+    ```
