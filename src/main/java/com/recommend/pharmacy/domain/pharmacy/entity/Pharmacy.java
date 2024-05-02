@@ -10,6 +10,7 @@ import javax.persistence.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 public class Pharmacy extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

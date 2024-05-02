@@ -1,10 +1,7 @@
 package com.recommend.pharmacy.domain.direction.entity;
 
 import com.recommend.pharmacy.BaseEntity;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -16,6 +13,7 @@ import javax.persistence.Id;
 @NoArgsConstructor
 @Builder
 @Getter
+@ToString
 public class Direction extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

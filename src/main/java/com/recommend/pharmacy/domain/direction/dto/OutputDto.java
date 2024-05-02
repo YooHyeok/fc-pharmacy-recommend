@@ -2,9 +2,11 @@ package com.recommend.pharmacy.domain.direction.dto;
 
 import lombok.Builder;
 import lombok.Getter;
+import lombok.ToString;
 
 @Getter
 @Builder
+@ToString
 public class OutputDto {
     private String pharmacyName;    // 약국 명
     private String pharmacyAddress; // 약국 주소
