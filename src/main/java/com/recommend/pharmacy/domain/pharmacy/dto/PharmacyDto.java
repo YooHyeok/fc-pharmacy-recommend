@@ -1,10 +1,12 @@
 package com.recommend.pharmacy.domain.pharmacy.dto;
 
-import lombok.Builder;
-import lombok.Getter;
+import lombok.*;
 
 @Getter
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@ToString
 public class PharmacyDto {
 
     private Long id;
