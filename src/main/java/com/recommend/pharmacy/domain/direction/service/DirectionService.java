@@ -125,7 +125,6 @@ public class DirectionService {
                 kakaoCategorySearchService
                         .requestPharmacyCategorySearch(inputDocumentDto.getLatitude(), inputDocumentDto.getLongitude(), RADIUS_KM)
                         .getDocumentList();
-
         return documentList.stream()
                 .map(resultDocumentDto ->
                         Direction.builder()
@@ -139,7 +138,7 @@ public class DirectionService {
                                 .targetLatitude(resultDocumentDto.getLatitude())
                                 .targetLongitude(resultDocumentDto.getLongitude())
                                 /* 고객-약국간 거리 */
-                                .distance(resultDocumentDto.getDistance())
+                                .distance(resultDocumentDto.getDistance() * 0.001)// km단위
                                 .build()
                 )
                 .limit(MAX_SEARCH_COUNT)
